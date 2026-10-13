@@ -19,6 +19,10 @@ Tap Start. Each of ten rounds speaks a US number digit by digit in French with t
 
 The game uses assigned US area codes and reserved fictional 555-0100–0199 numbers, so it never asks a child to practice with someone's real subscriber number. Random rounds can repeat. Scores last only for the current session.
 
+## iPhone layout
+
+The answer uses a text field with a numeric keyboard and autocomplete/correction disabled. Telephone detection is disabled for the page. Safari may still offer contact suggestions; while the answer is focused, the layout hides the decorative audio graphic, moves the field toward the top, and adapts to the visual viewport with space for the keyboard accessory bar. Verify this on an actual iPhone with contact autofill enabled.
+
 ## iPhone audio
 
 Open in Safari with sound enabled. Speech begins from the Start tap; French voice selection uses an installed fr-FR voice when available and otherwise asks the browser for French speech. Actual voices depend on the device. If speech fails, the app offers a fresh Start rather than starting an inaudible timed round.

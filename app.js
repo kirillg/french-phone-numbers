@@ -29,7 +29,7 @@ function startScreen(message = '') {
 }
 function nextQuestion() {
   clearInterval(timer); digits = ''; phase = 'speaking';
-  app.innerHTML = `${brand}<div class="session-top"><span class="progress-label">ROUND ${String(index + 1).padStart(2, '0')} / 10</span><div class="timer" role="timer" aria-label="Seconds remaining"><span id="seconds">30</span><small>sec</small></div></div><div class="progress" aria-hidden="true">${numbers.map((_, i) => `<i class="${i < index ? 'complete' : i === index ? 'current' : ''}"></i>`).join('')}</div><section class="exercise speaking"><div><div class="sound" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><h2 id="heading">Listen carefully…</h2><p class="hint" id="hint">You’ll hear each digit in French.<br>The country code +1 is already filled in.</p></div><div id="answer"><label class="number-box"><span class="prefix">+1-</span><input id="digits" aria-label="Ten-digit phone number" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="___-___-____"></label><div class="helper"><span id="count">0</span> / 10 digits</div></div><p class="feedback" id="feedback" aria-live="polite"></p><button class="primary" id="continue" hidden disabled>Continue <b aria-hidden="true">→</b></button></section><footer class="score"><span>YOUR SCORE</span><strong><span id="score">${score}</span> <small>/ 20</small></strong></footer>`;
+  app.innerHTML = `${brand}<div class="session-top"><span class="progress-label">ROUND ${String(index + 1).padStart(2, '0')} / 10</span><div class="timer" role="timer" aria-label="Seconds remaining"><span id="seconds">30</span><small>sec</small></div></div><div class="progress" aria-hidden="true">${numbers.map((_, i) => `<i class="${i < index ? 'complete' : i === index ? 'current' : ''}"></i>`).join('')}</div><section class="exercise speaking"><div><div class="sound" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><h2 id="heading">Listen carefully…</h2><p class="hint" id="hint">You’ll hear each digit in French.<br>The country code +1 is already filled in.</p></div><div id="answer"><label class="number-box"><span class="prefix">+1-</span><input id="digits" name="listening-answer" aria-label="Ten-digit listening answer" type="text" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="___-___-____"></label><div class="helper"><span id="count">0</span> / 10 digits</div></div><p class="feedback" id="feedback" aria-live="polite"></p><button class="primary" id="continue" hidden disabled>Continue <b aria-hidden="true">→</b></button></section><footer class="score"><span>YOUR SCORE</span><strong><span id="score">${score}</span> <small>/ 20</small></strong></footer>`;
   const input = document.querySelector('#digits');
   input.oninput = () => {
     digits = cleanDigits(input.value); input.value = formatDigits(digits);
@@ -91,4 +91,14 @@ function finishScreen() {
 }
 // Check immediately on foregrounding so iOS background timer throttling cannot add time.
 document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+// Safari's keyboard reduces the visual viewport without changing 100svh.
+// Track its usable height; focused-input styles keep the answer near the top.
+function updateVisibleHeight() {
+  const viewport = window.visualViewport;
+  if (viewport && viewport.scale === 1) {
+    app.style.setProperty('--visible-height', `${viewport.height}px`);
+  }
+}
+window.visualViewport?.addEventListener('resize', updateVisibleHeight);
+updateVisibleHeight();
 startScreen();
