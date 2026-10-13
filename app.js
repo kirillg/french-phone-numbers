@@ -1,0 +1,82 @@
+import { createSession, cleanDigits, formatDigits, spokenNumber } from './numbers.js';
+const app = document.querySelector('#app');
+let numbers = [], index = 0, score = 0, digits = '', phase = 'start', deadline = 0, timer;
+let speechGeneration = 0;
+const brand = '<header class="brand">allô!<span><i class="flag"></i>French practice</span></header>';
+const synth = window.speechSynthesis;
+function speak(text, done, failed) {
+  const generation = ++speechGeneration;
+  synth.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'fr-FR';
+  utterance.rate = .78;
+  const voice = synth.getVoices().find(v => v.lang === 'fr-FR') || synth.getVoices().find(v => v.lang.startsWith('fr'));
+  if (voice) utterance.voice = voice;
+  let settled = false;
+  const finish = callback => { if (settled || generation !== speechGeneration) return; settled = true; clearTimeout(watchdog); callback(); };
+  const watchdog = setTimeout(() => finish(failed), 25000);
+  utterance.onend = () => finish(done);
+  utterance.onerror = () => finish(failed);
+  synth.speak(utterance);
+}
+function startScreen(message = '') {
+  clearInterval(timer); phase = 'start';
+  app.innerHTML = `${brand}<section class="intro"><div class="illustration" aria-hidden="true"><div class="phone">☎</div><span class="spark">✦</span></div><p class="eyebrow">A little listening. A lot of learning.</p><h1>Listen in French.<br><em>Get the number.</em></h1><p class="description">Ten phone numbers. Thirty seconds each.<br>How many can you catch?</p><button class="primary" id="start">Start <b aria-hidden="true">→</b></button>${message ? `<p class="error" role="alert">${message}</p>` : ''}<div class="meta"><span>◷ &nbsp; 30 seconds</span><span>✦ &nbsp; 10 rounds</span></div></section><footer class="bottom-note">Listen closely. You’ve got this.</footer>`;
+  document.querySelector('#start').onclick = () => {
+    if (!synth || !window.SpeechSynthesisUtterance) return startScreen('This browser does not support spoken audio. Open this page in Safari on your iPhone.');
+    numbers = createSession(); index = 0; score = 0; nextQuestion();
+  };
+}
+function nextQuestion() {
+  clearInterval(timer); digits = ''; phase = 'speaking';
+  app.innerHTML = `${brand}<div class="session-top"><span class="progress-label">ROUND ${String(index + 1).padStart(2, '0')} / 10</span><div class="timer" role="timer" aria-label="Seconds remaining"><span id="seconds">30</span><small>sec</small></div></div><div class="progress" aria-hidden="true">${numbers.map((_, i) => `<i class="${i < index ? 'complete' : i === index ? 'current' : ''}"></i>`).join('')}</div><section class="exercise speaking"><div><div class="sound" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><h2 id="heading">Listen carefully…</h2><p class="hint" id="hint">You’ll hear each digit in French.<br>The country code +1 is already filled in.</p></div><form id="answer"><label class="number-box"><span class="prefix">+1-</span><input id="digits" aria-label="Ten-digit phone number" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="___-___-____"></label><div class="helper"><span id="count">0</span> / 10 digits</div><button class="primary" id="check" disabled>Check my answer <b aria-hidden="true">→</b></button></form><p class="feedback" id="feedback" aria-live="polite"></p></section><footer class="score"><span>YOUR SCORE</span><strong><span id="score">${score}</span> <small>/ 20</small></strong></footer>`;
+  const input = document.querySelector('#digits');
+  input.oninput = () => {
+    digits = cleanDigits(input.value); input.value = formatDigits(digits);
+    document.querySelector('#count').textContent = digits.length;
+    document.querySelector('#check').disabled = phase !== 'answering' || digits.length !== 10;
+  };
+  document.querySelector('#answer').onsubmit = event => { event.preventDefault(); if (phase === 'answering' && digits.length === 10) evaluate(); };
+  speak(spokenNumber(numbers[index]), () => {
+    phase = 'answering'; document.querySelector('.exercise').classList.remove('speaking');
+    document.querySelector('#heading').textContent = 'What did you hear?';
+    document.querySelector('#check').disabled = digits.length !== 10;
+    deadline = Date.now() + 30000;
+    timer = setInterval(tick, 100); tick();
+  }, audioFailed);
+}
+function tick() {
+  if (phase !== 'answering') return;
+  const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+  document.querySelector('#seconds').textContent = remaining;
+  document.querySelector('.timer').classList.toggle('urgent', remaining <= 10);
+  if (!remaining) evaluate(true);
+}
+function evaluate(timedOut = false) {
+  if (phase !== 'answering') return;
+  // A submission after the deadline counts as a timeout even if the tab's timer was suspended.
+  timedOut ||= Date.now() >= deadline;
+  phase = 'feedback'; clearInterval(timer);
+  const correct = !timedOut && digits === numbers[index];
+  if (correct) score += 2;
+  document.querySelector('#score').textContent = score;
+  document.querySelector('#digits').disabled = true;
+  document.querySelector('#check').disabled = true;
+  const feedback = document.querySelector('#feedback');
+  feedback.classList.toggle('wrong', !correct);
+  feedback.textContent = correct ? 'Ta-Da, Bien! +2 points' : `${timedOut ? 'Time’s up! ' : 'Désolé! '}+1-${formatDigits(numbers[index])}`;
+  speak(correct ? 'Ta-da ! Bien !' : 'Désolé.', advance, advance);
+}
+function advance() { index++; if (index === 10) finishScreen(); else nextQuestion(); }
+function audioFailed() {
+  ++speechGeneration; synth.cancel();
+  startScreen('Audio could not play. Turn up your volume, check that a French voice is available in your iPhone settings, and tap Start to try again.');
+}
+function finishScreen() {
+  phase = 'finished'; clearInterval(timer);
+  app.innerHTML = `${brand}<section class="finish"><div class="illustration trophy" aria-hidden="true">✦</div><p class="eyebrow">Ten rounds. Très bien!</p><h1>Congratulations!</h1><div class="result">${score}<small> / 20</small></div><p class="description">${score === 20 ? 'A perfect score! Magnifique.' : 'Every listen is a step forward.<br>Keep practicing — you’ve got this.'}</p><button class="primary" id="done">Done <b aria-hidden="true">✓</b></button></section><footer class="bottom-note">A little more French, every day.</footer>`;
+  document.querySelector('#done').onclick = () => startScreen();
+}
+// Check immediately on foregrounding so iOS background timer throttling cannot add time.
+document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+startScreen();
