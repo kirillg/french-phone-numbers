@@ -15,7 +15,7 @@ Run `npm test` for the number-generation, formatting, and pronunciation tests, a
 
 ## Play
 
-Tap Start. Each of ten rounds speaks a US number digit by digit in French with the browser's speech synthesis. The thirty-second timer starts when speech finishes. Enter the ten digits after +1 and tap Check my answer. A correct answer earns two points; a wrong answer or timeout earns none. The input is focused when you tap Start. After each attempt, the input hides and feedback is spoken. Tap Continue when you’re ready to hear the next number; its empty input is focused again. After the final result, Continue opens the Congratulations screen. Done returns to Start.
+Tap Start. Each of ten rounds speaks a US number digit by digit in French with the browser's speech synthesis. The thirty-second timer starts when speech finishes. Enter the ten digits after +1; the answer is checked automatically when the tenth digit is entered. If all digits are entered during the announcement, checking waits until it finishes. A correct answer earns two points; a wrong answer or timeout earns none. The input is focused when you tap Start. After each attempt, the input hides and feedback is spoken. Tap Continue when you’re ready to hear the next number; its empty input is focused again. After the final result, Continue opens the Congratulations screen. Done returns to Start.
 
 The game uses assigned US area codes and reserved fictional 555-0100–0199 numbers, so it never asks a child to practice with someone's real subscriber number. Random rounds can repeat. Scores last only for the current session.
 
