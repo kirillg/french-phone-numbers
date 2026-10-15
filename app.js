@@ -4,20 +4,43 @@ let numbers = [], index = 0, score = 0, digits = '', phase = 'start', deadline =
 let speechGeneration = 0;
 const brand = '<header class="brand">allô!<span><i class="flag"></i>French practice</span></header>';
 const synth = window.speechSynthesis;
-function speak(text, done, failed) {
+let cancelSpeechTimers = () => {};
+function speak(text, done, failed, pauseMs = 0) {
+  cancelSpeechTimers();
   const generation = ++speechGeneration;
   synth.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'fr-FR';
-  utterance.rate = .78;
-  const voice = synth.getVoices().find(v => v.lang === 'fr-FR') || synth.getVoices().find(v => v.lang.startsWith('fr'));
-  if (voice) utterance.voice = voice;
-  let settled = false;
-  const finish = callback => { if (settled || generation !== speechGeneration) return; settled = true; clearTimeout(watchdog); callback(); };
-  const watchdog = setTimeout(() => finish(failed), 25000);
-  utterance.onend = () => finish(done);
-  utterance.onerror = () => finish(failed);
-  synth.speak(utterance);
+  const parts = Array.isArray(text) ? text : [text];
+  let part = 0, settled = false, watchdog, pause;
+  const cleanup = () => { clearTimeout(watchdog); clearTimeout(pause); };
+  cancelSpeechTimers = () => { settled = true; cleanup(); };
+  const finish = callback => {
+    if (settled || generation !== speechGeneration) return;
+    settled = true; cleanup(); callback();
+  };
+  const sayPart = () => {
+    if (settled || generation !== speechGeneration) return;
+    const utterance = new SpeechSynthesisUtterance(parts[part]);
+    utterance.lang = 'fr-FR';
+    utterance.rate = .78;
+    const voice = synth.getVoices().find(v => v.lang === 'fr-FR') || synth.getVoices().find(v => v.lang.startsWith('fr'));
+    if (voice) utterance.voice = voice;
+    watchdog = setTimeout(() => { synth.cancel(); finish(failed); }, 25000);
+    utterance.onend = () => {
+      if (settled || generation !== speechGeneration) return;
+      clearTimeout(watchdog);
+      part++;
+      if (part === parts.length) finish(done);
+      else pause = setTimeout(sayPart, pauseMs);
+    };
+    utterance.onerror = () => finish(failed);
+    synth.speak(utterance);
+  };
+  sayPart();
+}
+function announceNumber(done, failed) {
+  // Separate utterances provide a real pause, independent of voice punctuation.
+  const pairs = spokenNumber(numbers[index]).replace(/\.$/, '').split('. ');
+  speak(pairs, done, failed, 700);
 }
 function startScreen(message = '') {
   clearInterval(timer); phase = 'start';
@@ -43,7 +66,7 @@ function nextQuestion() {
   // Keep the numeric keyboard open when tapping Repeat.
   repeat.onpointerdown = event => event.preventDefault();
   repeat.onclick = repeatNumber;
-  speak(spokenNumber(numbers[index]), () => beginAnswering(30000), audioFailed);
+  announceNumber(() => beginAnswering(30000), audioFailed);
 }
 function beginAnswering(remaining) {
   phase = 'answering';
@@ -68,7 +91,7 @@ function repeatNumber() {
   document.querySelector('#heading').textContent = 'Listen again…';
   document.querySelector('#repeat').disabled = true;
   document.querySelector('#repeat').textContent = 'Playing…';
-  speak(spokenNumber(numbers[index]), () => beginAnswering(remaining), () => {
+  announceNumber(() => beginAnswering(remaining), () => {
     beginAnswering(remaining);
     if (phase === 'answering') {
       document.querySelector('#hint').textContent = 'Couldn’t replay audio. Tap Repeat to try again.';
