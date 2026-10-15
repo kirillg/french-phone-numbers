@@ -15,3 +15,7 @@
 #app:has(#digits:focus) .hint { font-size: 12px; margin-bottom: 12px; }
 #app:has(#digits:focus) .helper { margin-bottom: 8px; }
 .feedback:empty { display: none; }
+
+.helper { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.repeat { min-height: 44px; padding: 6px 14px; border: 1px solid #ccd5c8; border-radius: 12px; background: #e3eadc; color: #294d3f; font-size: 14px; font-weight: 700; }
+.repeat:disabled { opacity: .5; cursor: default; }
