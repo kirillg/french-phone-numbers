@@ -1,3 +1,4 @@
+import { showClassroomQuiz } from './classroom.js';
 import { createSession, cleanDigits, formatDigits, spokenNumber } from './numbers.js';
 const app = document.querySelector('#app');
 let numbers = [], index = 0, score = 0, digits = '', phase = 'start', deadline = 0, timer;
@@ -138,7 +139,7 @@ function audioFailed() {
 function finishScreen() {
   phase = 'finished'; clearInterval(timer);
   app.innerHTML = `${brand}<section class="finish"><div class="illustration trophy" aria-hidden="true">✦</div><p class="eyebrow">Ten rounds. Très bien!</p><h1>Congratulations!</h1><div class="result">${score}<small> / 20</small></div><p class="description">${score === 20 ? 'A perfect score! Magnifique.' : 'Every listen is a step forward.<br>Keep practicing — you’ve got this.'}</p><button class="primary" id="done">Done <b aria-hidden="true">✓</b></button></section><footer class="bottom-note">A little more French, every day.</footer>`;
-  document.querySelector('#done').onclick = () => startScreen();
+  document.querySelector('#done').onclick = () => homeScreen();
 }
 // Check immediately on foregrounding so iOS background timer throttling cannot add time.
 document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
@@ -152,4 +153,11 @@ function updateVisibleHeight() {
 }
 window.visualViewport?.addEventListener('resize', updateVisibleHeight);
 updateVisibleHeight();
-startScreen();
+homeScreen();
+
+function homeScreen() {
+  clearInterval(timer); ++speechGeneration; cancelSpeechTimers(); synth?.cancel(); phase = 'home';
+  app.innerHTML = `${brand}<section class="intro"><p class="eyebrow">Choose your practice</p><h1>Bonjour, Arian!</h1><p class="description">Pick a French quiz to play.</p><div class="quiz-menu"><button class="quiz-tile" id="phone-quiz"><span class="quiz-icon">☎</span><strong>Phone numbers</strong><small>Listen and type the number · 10 rounds</small><span class="quiz-arrow">→</span></button><button class="quiz-tile" id="classroom-quiz"><span class="quiz-icon">✎</span><strong>Classroom objects</strong><small>French ↔ English vocabulary · 10 rounds</small><span class="quiz-arrow">→</span></button></div></section><footer class="bottom-note">A little more French, every day.</footer>`;
+  document.querySelector('#phone-quiz').onclick = () => startScreen();
+  document.querySelector('#classroom-quiz').onclick = () => showClassroomQuiz(app, brand, homeScreen);
+}
